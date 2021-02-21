@@ -7,9 +7,15 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bootloader = "0.9.12"
 
 [profile.dev]
 panic = "abort"
 
 [profile.release]
 panic = "abort"
+
+# 这里要设置成让bootimage调用xbuild 不然默认调用build
+[package.metadata.bootimage]
+build-command = ["xbuild"]
+run-command = ["qemu-system-x86_64.exe", "-L", "E:/qemu", "-drive", "format=raw,file={}"]
