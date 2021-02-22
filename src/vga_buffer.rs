@@ -1,6 +1,8 @@
 #![feature(exclusive_range_pattern)]
+
 use volatile::Volatile;
 use core::fmt;
+use lazy_static;
 
 // 定义VGA字符
 #[allow(dead_code)]
@@ -50,7 +52,7 @@ const BUFFER_WIDTH: usize = 80;
 // 由于Volatile库在最新版本完全重写，因此高版本要使用Volatile需要为ScreenChar实现core::ops::Deref和core::ops::DerefMut
 // 参见：https://github.com/phil-opp/blog_os/issues/405
 #[repr(transparent)]
-struct Buffer{
+struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
@@ -74,7 +76,7 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code.clone();
-                self.buffer.chars[row][col].write(ScreenChar{
+                self.buffer.chars[row][col].write(ScreenChar {
                     ascii_character: byte,
                     color_code,
                 });
@@ -123,11 +125,13 @@ impl fmt::Write for Writer {
     }
 }
 
-pub static WRITER: Writer = Writer {
-    column_position: 0,
-    color_code: ColorCode::new(Color::Yellow, Color::Black),
-    buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
-};
+lazy_static::lazy_static! {
+    pub static ref WRITER: Writer = Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
+    };
+}
 
 // 测试用
 pub fn print_sth() {
@@ -135,9 +139,9 @@ pub fn print_sth() {
     let mut writer = Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     };
     writer.write_byte(b'H');
     writer.write_string("ello ");
-    write!(writer, "The number are {} and {}", 42, 1.0/3.0).unwrap();
+    write!(writer, "The number are {} and {}", 42, 1.0 / 3.0).unwrap();
 }
