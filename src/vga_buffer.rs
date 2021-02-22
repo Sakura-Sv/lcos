@@ -1,9 +1,9 @@
 #![feature(exclusive_range_pattern)]
-use core::fmt::Write;
+use volatile::Volatile;
 
 // 定义VGA字符
 #[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Color {
     Black = 0,
@@ -24,7 +24,7 @@ pub enum Color {
     White = 15,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
 
@@ -36,7 +36,7 @@ impl ColorCode {
 
 // 缓冲区
 // 这里用repr(C)是为了保证结构体内存布局遵循C的按成员顺序布局而不是Rust默认
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(C)]
 struct ScreenChar {
     ascii_character: u8,
@@ -46,9 +46,11 @@ struct ScreenChar {
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
+// 由于Volatile库在最新版本完全重写，因此高版本要使用Volatile需要为ScreenChar实现core::ops::Deref和core::ops::DerefMut
+// 参见：https://github.com/phil-opp/blog_os/issues/405
 #[repr(transparent)]
 struct Buffer{
-    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 pub struct Writer {
@@ -71,10 +73,10 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code.clone();
-                self.buffer.chars[row][col] = ScreenChar {
+                self.buffer.chars[row][col].write(ScreenChar{
                     ascii_character: byte,
                     color_code,
-                };
+                });
                 self.column_position += 1;
             }
         }
@@ -83,7 +85,7 @@ impl Writer {
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
-                0x20...0x7e | b'\n' => self.write_byte(byte),
+                0x20..=0x7e | b'\n' => self.write_byte(byte),
                 _ => self.write_byte(0xfe),
             }
         }
