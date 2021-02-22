@@ -1,5 +1,6 @@
 #![feature(exclusive_range_pattern)]
 use volatile::Volatile;
+use core::fmt;
 
 // 定义VGA字符
 #[allow(dead_code)]
@@ -96,7 +97,17 @@ impl Writer {
     }
 }
 
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_string(s);
+        // 返回一个值为()的Result
+        Ok(())
+    }
+}
+
+// 测试用
 pub fn print_sth() {
+    use fmt::Write;
     let mut writer = Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
@@ -104,5 +115,5 @@ pub fn print_sth() {
     };
     writer.write_byte(b'H');
     writer.write_string("ello ");
-    writer.write_string("Wörld!");
+    write!(writer, "The number are {} and {}", 42, 1.0/3.0).unwrap();
 }
