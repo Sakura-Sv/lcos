@@ -11,9 +11,19 @@ mod serial;
 
 static HELLO: &[u8] = b"Hello CXY!";
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
     loop {}
 }
 
@@ -35,13 +45,6 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     loop {}
-}
-
-#[test_case]
-fn trivial_assertion() {
-    serial_print!("trivial assertion... ");
-    assert_eq!(0, 1);
-    serial_println!("[ok]");
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
