@@ -1,5 +1,3 @@
-#![feature(exclusive_range_pattern)]
-
 use volatile::Volatile;
 use core::fmt;
 use lazy_static;
